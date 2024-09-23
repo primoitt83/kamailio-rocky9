@@ -1,0 +1,60 @@
+version: '3.7'
+
+services:
+  kamailio:
+    container_name: kamailio-rocky9
+    build:
+      context: ./build
+      dockerfile: ./Dockerfile
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 5060:5060/udp
+      - 5060:5060
+      - 8080:8080
+      - 5061:5061
+      - 8443:8443
+      - 5090:5090/udp
+    environment:
+      - DOMINIO_BASE=kamailio.local
+      - KAMAILIO_IP_INTERNO=172.25.0.20 ## container ip
+      - KAMAILIO_IP_EXTERNO=192.168.5.12 ## local ip
+      - KAMAILIO_IP_DB=172.25.0.21 ## postgres ip
+      - RTPENGINE_IP=192.168.5.12 ## rtpengine ip
+      - POSTGRES_USER=postgres ## db root
+      - POSTGRES_PASSWORD=58e1bab9f6613cce680ed55245a91d30 ## db root pass
+      - DB_NAME=kamailio
+      - SELFSIGNED=true
+    networks:
+      net:
+        ipv4_address: 172.25.0.20
+    logging:
+      options:
+        max-size: 100M
+
+  postgres:
+    container_name: postgres
+    image: postgres:13.12-alpine
+    restart: always
+    healthcheck:
+      test: pg_isready -d postgres -h localhost -p 5432 -U postgres
+    expose:
+      - 5432
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres 
+      - POSTGRES_USER=postgres ## db root
+      - POSTGRES_PASSWORD=58e1bab9f6613cce680ed55245a91d30 ## db root pass
+    networks:
+      net:
+        ipv4_address: 172.25.0.21
+    logging:
+      options:
+        max-size: 100M     
+
+networks:
+  net:
+    external: true
